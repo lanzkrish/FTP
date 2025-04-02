@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Transfer</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
+        input, button { margin: 10px; padding: 10px; }
+        .file-list { margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h2>Local Network File Transfer</h2>
+    
+    <input type="file" id="fileInput">
+    <button onclick="uploadFile()">Upload File</button>
+
+    <h3>Available Files:</h3>
+    <div class="file-list" id="fileList"></div>
+
+    <script>
+        async function uploadFile() {
+            const fileInput = document.getElementById("fileInput");
+            if (!fileInput.files.length) return alert("Please select a file.");
+
+            const formData = new FormData();
+            formData.append("file", fileInput.files[0]);
+
+            const response = await fetch("/upload", { method: "POST", body: formData });
+            if (response.ok) {
+                alert("File uploaded successfully!");
+                loadFiles();
+            }
+        }
+
+        async function loadFiles() {
+            const response = await fetch("/files");
+            const files = await response.json();
+            const fileList = document.getElementById("fileList");
+            fileList.innerHTML = files.map(file => 
+                `<p><a href="/uploads/${file}" download>${file}</a></p>`
+            ).join("");
+        }
+
+        loadFiles();
+    </script>
+</body>
+</html>
