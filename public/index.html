@@ -1,20 +1,55 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>File Transfer</title>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
-        input, button { margin: 10px; padding: 10px; }
-        .file-list { margin-top: 20px; }
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+        }
+
+        input,
+        button {
+            margin: 10px;
+            padding: 10px;
+        }
+
+        .file-list {
+            margin-top: 20px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            background-color: #f3f3f3;
+            border: 1px solid #ccc;
+            margin-top: 10px;
+            height: 20px;
+            position: relative;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background-color: #4caf50;
+            width: 0;
+            transition: width 0.2s;
+        }
     </style>
 </head>
+
 <body>
     <h2>Local Network File Transfer</h2>
-    
+
     <input type="file" id="fileInput">
     <button onclick="uploadFile()">Upload File</button>
+
+    <div class="progress-bar" id="progressBar">
+        <div class="progress-bar-fill" id="progressBarFill"></div>
+    </div>
+    <p id="uploadStatus"></p>
 
     <h3>Available Files:</h3>
     <div class="file-list" id="fileList"></div>
@@ -22,23 +57,49 @@
     <script>
         async function uploadFile() {
             const fileInput = document.getElementById("fileInput");
+            const progressBarFill = document.getElementById("progressBarFill");
+            const uploadStatus = document.getElementById("uploadStatus");
+
             if (!fileInput.files.length) return alert("Please select a file.");
 
+            const file = fileInput.files[0];
             const formData = new FormData();
-            formData.append("file", fileInput.files[0]);
+            formData.append("file", file);
 
-            const response = await fetch("/upload", { method: "POST", body: formData });
-            if (response.ok) {
-                alert("File uploaded successfully!");
-                loadFiles();
-            }
+            const xhr = new XMLHttpRequest();
+            xhr.open("POST", "/upload", true);
+
+            xhr.upload.onprogress = (event) => {
+                if (event.lengthComputable) {
+                    const percentComplete = (event.loaded / event.total) * 100;
+                    progressBarFill.style.width = percentComplete + "%";
+                    uploadStatus.textContent = `Uploaded ${Math.round(event.loaded / 1024)} KB of ${Math.round(event.total / 1024)} KB`;
+                }
+            };
+
+            xhr.onload = () => {
+                if (xhr.status === 200) {
+                    alert("File uploaded successfully!");
+                    progressBarFill.style.width = "100%";
+                    uploadStatus.textContent = "Upload complete!";
+                    loadFiles();
+                } else {
+                    alert("Error uploading file.");
+                }
+            };
+
+            xhr.onerror = () => {
+                alert("Error uploading file.");
+            };
+
+            xhr.send(formData);
         }
 
         async function loadFiles() {
             const response = await fetch("/files");
             const files = await response.json();
             const fileList = document.getElementById("fileList");
-            fileList.innerHTML = files.map(file => 
+            fileList.innerHTML = files.map(file =>
                 `<p><a href="/uploads/${file}" download>${file}</a></p>`
             ).join("");
         }
@@ -46,4 +107,5 @@
         loadFiles();
     </script>
 </body>
+
 </html>
